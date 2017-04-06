@@ -89,11 +89,11 @@ class BrowserDetector implements DetectorInterface
 
         self::$browser->setName(Browser::UNKNOWN);
         self::$browser->setVersion(Browser::VERSION_UNKNOWN);
+        self::$browser->setLayoutEngine(Browser::ENGINE_UNKNOWN);
 
         self::checkChromeFrame();
         self::checkFacebookWebView();
         self::checkTwitterWebView();
-        self::checkWebkit();
 
         foreach (self::$browsersList as $browserName) {
             $funcName = self::FUNC_PREFIX . $browserName;
@@ -115,22 +115,6 @@ class BrowserDetector implements DetectorInterface
     {
         if (strpos(self::$userAgentString, 'chromeframe') !== false) {
             self::$browser->setIsChromeFrame(true);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Determine if the browser is a wekit webview.
-     *
-     * @return bool
-     */
-    public static function checkWebkit()
-    {
-        if (strpos(self::$userAgentString, 'AppleWebKit/') !== false) {
-            self::$browser->setIsWebkit(true);
 
             return true;
         }
@@ -194,6 +178,7 @@ class BrowserDetector implements DetectorInterface
                 }
             }
             self::$browser->setName(Browser::BLACKBERRY);
+            self::$browser->setLayoutEngine(Browser::ENGINE_WEBKIT);
 
             return true;
         } elseif (stripos(self::$userAgentString, 'BB10') !== false) {
@@ -203,6 +188,7 @@ class BrowserDetector implements DetectorInterface
                 self::$browser->setVersion('10.' . $aversion[0]);
             }
             self::$browser->setName(Browser::BLACKBERRY);
+            self::$browser->setLayoutEngine(Browser::ENGINE_WEBKIT);
             return true;
         }
 
@@ -219,6 +205,7 @@ class BrowserDetector implements DetectorInterface
         // Test for v1 - v1.5 IE
         if (stripos(self::$userAgentString, 'microsoft internet explorer') !== false) {
             self::$browser->setName(Browser::IE);
+            self::$browser->setLayoutEngine(Browser::ENGINE_TRIDENT);
             self::$browser->setVersion('1.0');
             $aresult = stristr(self::$userAgentString, '/');
             if (preg_match('/308|425|426|474|0b1/i', $aresult)) {
@@ -234,6 +221,7 @@ class BrowserDetector implements DetectorInterface
                 if (stripos(self::$userAgentString, 'msnb') !== false) {
                     $aresult = explode(' ', stristr(str_replace(';', '; ', self::$userAgentString), 'MSN'));
                     self::$browser->setName(Browser::MSN);
+                    self::$browser->setLayoutEngine(Browser::ENGINE_TRIDENT);
                     if (isset($aresult[1])) {
                         self::$browser->setVersion(str_replace(array('(', ')', ';'), '', $aresult[1]));
                     }
@@ -242,6 +230,7 @@ class BrowserDetector implements DetectorInterface
                 }
                 $aresult = explode(' ', stristr(str_replace(';', '; ', self::$userAgentString), 'msie'));
                 self::$browser->setName(Browser::IE);
+                self::$browser->setLayoutEngine(Browser::ENGINE_TRIDENT);
                 if (isset($aresult[1])) {
                     self::$browser->setVersion(str_replace(array('(', ')', ';'), '', $aresult[1]));
                 }
@@ -287,6 +276,7 @@ class BrowserDetector implements DetectorInterface
             else {
                 if (stripos(self::$userAgentString, 'trident') !== false) {
                     self::$browser->setName(Browser::IE);
+                    self::$browser->setLayoutEngine(Browser::ENGINE_TRIDENT);
 
                     preg_match('/rv:(\d+\.\d+)/', self::$userAgentString, $matches);
                     if (isset($matches[1])) {
@@ -306,6 +296,7 @@ class BrowserDetector implements DetectorInterface
                     ) {
                         $aresult = explode(' ', stristr(self::$userAgentString, 'mspie'));
                         self::$browser->setName(Browser::POCKET_IE);
+                        self::$browser->setLayoutEngine(Browser::ENGINE_TRIDENT);
 
                         if (stripos(self::$userAgentString, 'mspie') !== false) {
                             if (isset($aresult[1])) {
@@ -348,6 +339,7 @@ class BrowserDetector implements DetectorInterface
                     self::$browser->setVersion($aversion[1]);
                 }
             }
+            self::$browser->setLayoutEngine(Browser::ENGINE_BLINK);
             self::$browser->setName(Browser::OPERA_MINI);
 
             return true;
@@ -357,24 +349,47 @@ class BrowserDetector implements DetectorInterface
                 $aversion = explode(' ', $aresult[1]);
                 self::$browser->setVersion($aversion[0]);
             }
+            self::$browser->setLayoutEngine(Browser::ENGINE_BLINK);
             self::$browser->setName(Browser::OPERA_MINI);
 
             return true;
         } elseif (stripos(self::$userAgentString, 'opera') !== false) {
             $resultant = stristr(self::$userAgentString, 'opera');
+            $version = 0.0;
             if (preg_match('/Version\/(1[0-2].*)$/', $resultant, $matches)) {
                 if (isset($matches[1])) {
+                    $version = (float)$matches[1];
                     self::$browser->setVersion($matches[1]);
                 }
             } elseif (preg_match('/\//', $resultant)) {
                 $aresult = explode('/', str_replace('(', ' ', $resultant));
                 if (isset($aresult[1])) {
                     $aversion = explode(' ', $aresult[1]);
+                    $version = (float)$aversion[0];
                     self::$browser->setVersion($aversion[0]);
                 }
             } else {
                 $aversion = explode(' ', stristr($resultant, 'opera'));
-                self::$browser->setVersion(isset($aversion[1]) ? $aversion[1] : '');
+                if (isset($aversion[1]))
+                {
+                    self::$browser->setVersion($aversion[1]);
+                    $version = (float)$aversion[1];
+            }
+            }
+            if ($version < 15 && $version > 0)
+            {
+                if ($version < 7)
+                {
+                    self::$browser->setLayoutEngine(Browser::ENGINE_OPERA);
+                }
+                else
+                {
+                    self::$browser->setLayoutEngine(Browser::ENGINE_PRESTO);
+                }
+            }
+            else if ($version >= 15)
+            {
+                self::$browser->setLayoutEngine(Browser::ENGINE_BLINK);
             }
             self::$browser->setName(Browser::OPERA);
 
@@ -383,6 +398,22 @@ class BrowserDetector implements DetectorInterface
             self::$browser->setName(Browser::OPERA);
             if (preg_match('/OPR\/([\d\.]*)/', self::$userAgentString, $matches)) {
                 if (isset($matches[1])) {
+                    $version = (float)$matches[1];
+                    if ($version < 15 && $version > 0)
+                    {
+                        if ($version < 7)
+                        {
+                            self::$browser->setLayoutEngine(Browser::ENGINE_OPERA);
+                        }
+                        else
+                        {
+                            self::$browser->setLayoutEngine(Browser::ENGINE_PRESTO);
+                        }
+                    }
+                    else if ($version >= 15)
+                    {
+                        self::$browser->setLayoutEngine(Browser::ENGINE_BLINK);
+                    }
                     self::$browser->setVersion($matches[1]);
                 }
             }
@@ -406,6 +437,7 @@ class BrowserDetector implements DetectorInterface
                 $aversion = explode(' ', $aresult[1]);
                 self::$browser->setVersion($aversion[0]);
             }
+            self::$browser->setLayoutEngine(Browser::ENGINE_WEBKIT);
             self::$browser->setName(Browser::SAMSUNG_BROWSER);
 
             return true;
@@ -422,21 +454,40 @@ class BrowserDetector implements DetectorInterface
     public static function checkBrowserChrome()
     {
         if (stripos(self::$userAgentString, 'Chrome') !== false) {
+            $version = 0;
             $aresult = explode('/', stristr(self::$userAgentString, 'Chrome'));
             if (isset($aresult[1])) {
                 $aversion = explode(' ', $aresult[1]);
+                $version = (float)$aversion[0];
                 self::$browser->setVersion($aversion[0]);
             }
             self::$browser->setName(Browser::CHROME);
-
+            if ($version<28 && $version > 0)
+            {
+                self::$browser->setLayoutEngine(Browser::ENGINE_WEBKIT);
+            }
+            else if ($version >= 28)
+            {
+                self::$browser->setLayoutEngine(Browser::ENGINE_BLINK);
+            }
             return true;
         } elseif (stripos(self::$userAgentString, 'CriOS') !== false) {
+            $version = 0;
             $aresult = explode('/', stristr(self::$userAgentString, 'CriOS'));
             if (isset($aresult[1])) {
                 $aversion = explode(' ', $aresult[1]);
+                $version = (float)$aversion[0];
                 self::$browser->setVersion($aversion[0]);
             }
             self::$browser->setName(Browser::CHROME);
+            if ($version<28 && $version > 0)
+            {
+                self::$browser->setLayoutEngine(Browser::ENGINE_WEBKIT);
+            }
+            else if ($version >= 28)
+            {
+                self::$browser->setLayoutEngine(Browser::ENGINE_BLINK);
+            }
 
             return true;
         }
@@ -457,6 +508,7 @@ class BrowserDetector implements DetectorInterface
                 $aversion = explode(' ', $aresult[1]);
                 self::$browser->setVersion($aversion[0]);
             }
+            self::$browser->setLayoutEngine(Browser::ENGINE_BLINK);
             self::$browser->setName(Browser::VIVALDI);
 
             return true;
@@ -474,6 +526,7 @@ class BrowserDetector implements DetectorInterface
     {
         if (stripos(self::$userAgentString, 'Edge') !== false) {
             $version = explode('Edge/', self::$userAgentString);
+            self::$browser->setLayoutEngine(Browser::ENGINE_EDGEHTML);
             if (isset($version[1])) {
                 self::$browser->setVersion((float)$version[1]);
             }
@@ -561,6 +614,7 @@ class BrowserDetector implements DetectorInterface
             if (isset($aversion[1])) {
                 self::$browser->setVersion($aversion[1]);
             }
+            self::$browser->setLayoutEngine(Browser::ENGINE_GECKO);
             self::$browser->setName(Browser::GALEON);
 
             return true;
@@ -583,6 +637,14 @@ class BrowserDetector implements DetectorInterface
                 self::$browser->setVersion($aversion[1]);
             }
             self::$browser->setName(Browser::KONQUEROR);
+            if (stristr(self::$userAgentString, 'webkit')!==false)
+            {
+                self::$browser->setLayoutEngine(Browser::ENGINE_WEBKIT);
+            }
+            else if (stristr(self::$userAgentString, 'KHTML')!==false)
+            {
+                self::$browser->setLayoutEngine(Browser::ENGINE_KHTML);
+            }
 
             return true;
         }
@@ -601,6 +663,15 @@ class BrowserDetector implements DetectorInterface
             $aversion = explode(' ', stristr(str_replace('/', ' ', self::$userAgentString), 'icab'));
             if (isset($aversion[1])) {
                 self::$browser->setVersion($aversion[1]);
+                $version = (float)$aversion[1];
+                if ($version < 4)
+                {
+                    self::$browser->setLayoutEngine(Browser::ENGINE_ICAB);
+            }
+                else
+                {
+                    self::$browser->setLayoutEngine(Browser::ENGINE_WEBKIT);
+                }
             }
             self::$browser->setName(Browser::ICAB);
 
@@ -620,9 +691,17 @@ class BrowserDetector implements DetectorInterface
         if (stripos(self::$userAgentString, 'omniweb') !== false) {
             $aresult = explode('/', stristr(self::$userAgentString, 'omniweb'));
             $aversion = explode(' ', isset($aresult[1]) ? $aresult[1] : '');
+            $version = (float)$aversion[0];
             self::$browser->setVersion($aversion[0]);
             self::$browser->setName(Browser::OMNIWEB);
-
+            if ($version < 4.5)
+            {
+                self::$browser->setLayoutEngine(Browser::ENGINE_OMNIWEB);
+            }
+            else
+            {
+                self::$browser->setLayoutEngine(Browser::ENGINE_WEBKIT);
+            }
             return true;
         }
 
@@ -642,6 +721,7 @@ class BrowserDetector implements DetectorInterface
                 self::$browser->setVersion($aversion[1]);
             }
             self::$browser->setName(Browser::PHOENIX);
+            self::$browser->setLayoutEngine(Browser::ENGINE_GECKO);
 
             return true;
         }
@@ -662,6 +742,7 @@ class BrowserDetector implements DetectorInterface
                 self::$browser->setVersion($aversion[1]);
             }
             self::$browser->setName(Browser::FIREBIRD);
+            self::$browser->setLayoutEngine(Browser::ENGINE_GECKO);
 
             return true;
         }
@@ -683,6 +764,7 @@ class BrowserDetector implements DetectorInterface
                 self::$browser->setVersion($matches[1]);
             }
             self::$browser->setName(Browser::NETSCAPE_NAVIGATOR);
+            self::$browser->setLayoutEngine(Browser::ENGINE_GECKO);
 
             return true;
         } elseif (stripos(self::$userAgentString, 'Firefox') === false &&
@@ -692,6 +774,7 @@ class BrowserDetector implements DetectorInterface
                 self::$browser->setVersion($matches[1]);
             }
             self::$browser->setName(Browser::NETSCAPE_NAVIGATOR);
+            self::$browser->setLayoutEngine(Browser::ENGINE_GECKO);
 
             return true;
         }
@@ -713,7 +796,7 @@ class BrowserDetector implements DetectorInterface
                 self::$browser->setVersion($matches[1]);
             }
             self::$browser->setName(Browser::SHIRETOKO);
-
+            self::$browser->setLayoutEngine(Browser::ENGINE_GECKO);
             return true;
         }
 
@@ -734,6 +817,7 @@ class BrowserDetector implements DetectorInterface
                 self::$browser->setVersion($matches[1]);
             }
             self::$browser->setName(Browser::ICECAT);
+            self::$browser->setLayoutEngine(Browser::ENGINE_GECKO);
 
             return true;
         }
@@ -754,8 +838,10 @@ class BrowserDetector implements DetectorInterface
                 strpos(self::$userAgentString, 'S60') !== false
             ) {
                 self::$browser->setName(Browser::NOKIA_S60);
+                self::$browser->setLayoutEngine(Browser::ENGINE_WEBKIT);
             } else {
                 self::$browser->setName(Browser::NOKIA);
+                self::$browser->setLayoutEngine(Browser::ENGINE_GECKO);
             }
 
             return true;
@@ -777,11 +863,13 @@ class BrowserDetector implements DetectorInterface
                     self::$browser->setVersion($matches[1]);
                 }
                 self::$browser->setName(Browser::FIREFOX);
+                self::$browser->setLayoutEngine(Browser::ENGINE_GECKO);
 
                 return true;
             } elseif (preg_match('/Firefox$/i', self::$userAgentString, $matches)) {
                 self::$browser->setVersion('');
                 self::$browser->setName(Browser::FIREFOX);
+                self::$browser->setLayoutEngine(Browser::ENGINE_GECKO);
 
                 return true;
             }
@@ -803,11 +891,13 @@ class BrowserDetector implements DetectorInterface
                     self::$browser->setVersion($matches[1]);
                 }
                 self::$browser->setName(Browser::SEAMONKEY);
+                self::$browser->setLayoutEngine(Browser::ENGINE_GECKO);
 
                 return true;
             } elseif (preg_match('/SeaMonkey$/i', self::$userAgentString, $matches)) {
                 self::$browser->setVersion('');
                 self::$browser->setName(Browser::SEAMONKEY);
+                self::$browser->setLayoutEngine(Browser::ENGINE_GECKO);
 
                 return true;
             }
@@ -830,7 +920,7 @@ class BrowserDetector implements DetectorInterface
                 self::$browser->setVersion($aversion[0]);
             }
             self::$browser->setName(Browser::ICEWEASEL);
-
+            self::$browser->setLayoutEngine(Browser::ENGINE_GECKO);
             return true;
         }
 
@@ -890,7 +980,7 @@ class BrowserDetector implements DetectorInterface
             $aversion = explode(' ', (isset($aresult[1]) ? $aresult[1] : ''));
             self::$browser->setVersion($aversion[0]);
             self::$browser->setName(Browser::LYNX);
-
+            self::$browser->setLayoutEngine(Browser::ENGINE_LYNX);
             return true;
         }
 
@@ -935,7 +1025,7 @@ class BrowserDetector implements DetectorInterface
                 self::$browser->setVersion(Browser::VERSION_UNKNOWN);
             }
             self::$browser->setName(Browser::SAFARI);
-
+            self::$browser->setLayoutEngine(Browser::ENGINE_WEBKIT);
             return true;
         }
 
@@ -956,7 +1046,7 @@ class BrowserDetector implements DetectorInterface
                 self::$browser->setVersion($aversion[0]);
             }
             self::$browser->setName(Browser::YANDEX);
-
+            self::$browser->setLayoutEngine(Browser::ENGINE_BLINK);
             return true;
         }
 
@@ -974,7 +1064,16 @@ class BrowserDetector implements DetectorInterface
             $aresult = explode('/', stristr(self::$userAgentString, 'Dragon'));
             if (isset($aresult[1])) {
                 $aversion = explode(' ', $aresult[1]);
+                $version = (float)$aversion[0];
                 self::$browser->setVersion($aversion[0]);
+                if ($version<28)
+                {
+                    self::$browser->setLayoutEngine(Browser::ENGINE_WEBKIT);
+            }
+                else
+                {
+                    self::$browser->setLayoutEngine(Browser::ENGINE_BLINK);
+                }
             }
             self::$browser->setName(Browser::DRAGON);
 
@@ -999,6 +1098,19 @@ class BrowserDetector implements DetectorInterface
                 }
             } else {
                 self::$browser->setVersion(Browser::VERSION_UNKNOWN);
+            }
+            preg_match('/Android[\\/ \\(]([a-zA-Z\\d\\.]*)/i', self::$userAgentString, $matches);
+            if (sizeof($matches)>1)
+            {
+                $androidVersion = (float)$matches[1];
+                if ($androidVersion < 4.4)
+                {
+                    self::$browser->setLayoutEngine(Browser::ENGINE_WEBKIT);
+                }
+                else
+                {
+                    self::$browser->setLayoutEngine(Browser::ENGINE_BLINK);
+                }
             }
             self::$browser->setName(Browser::NAVIGATOR);
 
@@ -1035,6 +1147,7 @@ class BrowserDetector implements DetectorInterface
                 self::$browser->setVersion($aversion[0]);
             }
             self::$browser->setName(Browser::UCBROWSER);
+            self::$browser->setLayoutEngine(Browser::ENGINE_U3);
 
             return true;
         }

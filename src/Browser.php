@@ -47,6 +47,35 @@ class Browser
 
     const VERSION_UNKNOWN = 'unknown';
 
+    const ENGINE_UNKNOWN = 'unknown';
+    const ENGINE_BLINK = 'Blink'; //Google Chrome, Opera 15+, Sleipnir 5+, Maxthon 4.2+
+    const ENGINE_DILLO = 'Dillo'; //Dillo. TODO: Detect Dillo browser
+    const ENGINE_EDGEHTML = 'EdgeHTML'; //Microsoft Edge
+    const ENGINE_GECKO = 'Gecko'; //Firefox, Camino, K-Meleon, SeaMonkey, Netscape, etc..
+    const ENGINE_GOANNA = 'Goanna'; //Pale Moon TODO: Detect Pale Moon
+    const ENGINE_HTML_LAYOUT = 'HTMLayout'; //TODO: Detect HTMlayout
+    const ENGINE_ICAB = 'iCab'; //Versions 1-3
+    const ENGINE_KHTML = 'KHTML'; //Konqueror
+    const ENGINE_LINKS = 'Links'; //Links, text-based TODO: Detect Links
+    const ENGINE_LINKS2 = 'Links2'; //Links launched with -g TODO: DetectLinks
+    const ENGINE_LYNX = 'Lynx'; //Lynx, Text-based
+    const ENGINE_NETFRONT = 'NetFront'; //Access NetFront TODO: Detect NetFront
+    const ENGINE_NETSCAPE = 'Netscape'; //NetScape < 6.0 TODO: Proper netscape detection
+    const ENGINE_NETSURF = 'NetSurf'; //NetSurf TODO: Detect NetSurf
+    const ENGINE_OFFBYONE = 'OffByOne'; //OffbyOne TODO: Detect OffbyOne
+    const ENGINE_OMNIWEB = 'Omniweb'; //Omniweb 1-4
+    const ENGINE_OPERA = 'Opera'; //Opera < 7
+    const ENGINE_PRESTO = 'Presto'; //Opera 7-15
+    const ENGINE_PRINCE = 'Prince'; //Web-page printer - i.e Prince/11.1 (www.princexml.com) TODO: Detect prince
+    const ENGINE_ROBIN = 'Robin'; //The Bat! TODO: Detect The Bat
+    const ENGINE_SERVO = 'Servo'; //By mozilla/samsung TODO: Detect Servo
+    const ENGINE_TASMAN = 'Tasman'; //IE 5 for mac, Office 2004 for mac, office 2008 for mac TODO: Detect Tasman
+    const ENGINE_TRIDENT = 'Trident'; //IE
+    const ENGINE_TKHTML = 'TKHTML'; //hv3 TODO: Detect hv3
+    const ENGINE_W3M = 'W3m'; //TODO: Detect W3m
+    const ENGINE_U3 = 'U3'; //Usee by UCBrowser. Based on WebKit.
+    const ENGINE_WEBKIT = 'Webkit'; //Safari, Arora, Midori, OmniWeb < 5, Shiira, iCab, Web, SRWare Iron, Rekonq, Sleipnir, Maxthon 3, Google chrome <= 27
+
     /**
      * @var UserAgent
      */
@@ -62,14 +91,14 @@ class Browser
     private $version;
 
     /**
-     * @var bool
+     * @var string
      */
-    private $isChromeFrame = false;
+    private $layoutEngine;
 
     /**
      * @var bool
      */
-    private $isWebkit = false;
+    private $isChromeFrame = false;
 
     /**
      * @var bool
@@ -171,6 +200,34 @@ class Browser
     }
 
     /**
+     * Set the layout engine of the browser.
+     *
+     * @param string $layoutEngine
+     *
+     * @return $this
+     */
+    public function setLayoutEngine($layoutEngine)
+    {
+        $this->layoutEngine = (string)$layoutEngine;
+
+        return $this;
+    }
+
+    /**
+     * The layout engine of the browser.
+     *
+     * @return string
+     */
+    public function getLayoutEngine()
+    {
+        if (!isset($this->name)) {
+            BrowserDetector::detect($this, $this->getUserAgent());
+        }
+
+        return (string) $this->layoutEngine;
+    }
+
+    /**
      * Detects scripted agents (robots / bots)
      * Returns a resolved ScriptedAgent object if detected.
      * Otherwise returns false.
@@ -266,40 +323,6 @@ class Browser
     public function isChromeFrame()
     {
         return $this->getIsChromeFrame();
-    }
-
-    /**
-     * @param bool $isChromeFrame
-     *
-     * @return $this
-     */
-    public function setIsWebkit($isWebkit)
-    {
-        $this->isWebkit = (bool)$isWebkit;
-
-        return $this;
-    }
-
-    /**
-     * Used to determine if the browser is actually "chromeframe".
-     *
-     * @return bool
-     */
-    public function getIsWebkit()
-    {
-        if (!isset($this->name)) {
-            BrowserDetector::detect($this, $this->getUserAgent());
-        }
-
-        return $this->isWebkit;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isWebkit()
-    {
-        return $this->getIsWebkit();
     }
 
     /**
