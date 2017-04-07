@@ -57,7 +57,6 @@ class Browser
     const ENGINE_ICAB = 'iCab'; //Versions 1-3
     const ENGINE_KHTML = 'KHTML'; //Konqueror
     const ENGINE_LINKS = 'Links'; //Links, text-based TODO: Detect Links
-    const ENGINE_LINKS2 = 'Links2'; //Links launched with -g TODO: DetectLinks
     const ENGINE_LYNX = 'Lynx'; //Lynx, Text-based
     const ENGINE_NETFRONT = 'NetFront'; //Access NetFront TODO: Detect NetFront
     const ENGINE_NETSCAPE = 'Netscape'; //NetScape < 6.0 TODO: Proper netscape detection
@@ -74,7 +73,7 @@ class Browser
     const ENGINE_TKHTML = 'TKHTML'; //hv3 TODO: Detect hv3
     const ENGINE_W3M = 'W3m'; //TODO: Detect W3m
     const ENGINE_U3 = 'U3'; //Usee by UCBrowser. Based on WebKit.
-    const ENGINE_WEBKIT = 'Webkit'; //Safari, Arora, Midori, OmniWeb < 5, Shiira, iCab, Web, SRWare Iron, Rekonq, Sleipnir, Maxthon 3, Google chrome <= 27
+    const ENGINE_WEBKIT = 'Webkit'; //Safari, Arora, Midori, OmniWeb >= 4.5, Shiira, iCab, Web, SRWare Iron, Rekonq, Sleipnir, Maxthon 3, Google chrome <= 27
 
     /**
      * @var UserAgent
@@ -96,6 +95,11 @@ class Browser
     private $layoutEngine;
 
     /**
+     * @var string
+     */
+    private $layoutEngineVersion;
+
+    /**
      * @var bool
      */
     private $isChromeFrame = false;
@@ -114,6 +118,11 @@ class Browser
      * @var bool
      */
     private $isCompatibilityMode = false;
+
+    /**
+     * @var bool
+     */
+    private $doneFullEngineDetection = false;
 
     /**
      * @param null|string|UserAgent $userAgent
@@ -224,7 +233,45 @@ class Browser
             BrowserDetector::detect($this, $this->getUserAgent());
         }
 
+        if (!$this->doneFullEngineDetection)
+        {
+            BrowserDetector::detectEngine($this, $this->getUserAgent());
+        }
+
         return (string) $this->layoutEngine;
+    }
+
+    /**
+     * Set the layout engine version of the browser.
+     *
+     * @param string $layoutEngineVersion
+     *
+     * @return $this
+     */
+    public function setLayoutEngineVersion($layoutEngineVersion)
+    {
+        $this->layoutEngineVersion = (string)$layoutEngineVersion;
+
+        return $this;
+    }
+
+    /**
+     * The layout engine of the browser.
+     *
+     * @return string
+     */
+    public function getLayoutEngineVersion()
+    {
+        if (!isset($this->name)) {
+            BrowserDetector::detect($this, $this->getUserAgent());
+        }
+
+        if (!$this->doneFullEngineDetection)
+        {
+            BrowserDetector::detectEngine($this, $this->getUserAgent());
+        }
+
+        return (string) $this->layoutEngineVersion;
     }
 
     /**

@@ -90,6 +90,7 @@ class BrowserDetector implements DetectorInterface
         self::$browser->setName(Browser::UNKNOWN);
         self::$browser->setVersion(Browser::VERSION_UNKNOWN);
         self::$browser->setLayoutEngine(Browser::ENGINE_UNKNOWN);
+        self::$browser->setLayoutEngineVersion(Browser::VERSION_UNKNOWN);
 
         self::checkChromeFrame();
         self::checkFacebookWebView();
@@ -102,6 +103,46 @@ class BrowserDetector implements DetectorInterface
                 return true;
             }
         }
+
+        return false;
+    }
+
+    /**
+     * Routine to do full browser engine detection.
+     *
+     * @param Browser $browser
+     * @param UserAgent $userAgent
+     *
+     * @return bool
+     */
+    public static function detectEngine(Browser $browser, UserAgent $userAgent = null)
+    {
+
+        self::$browser = $browser;
+        if (is_null($userAgent)) {
+            $userAgent = self::$browser->getUserAgent();
+        }
+        self::$userAgentString = $userAgent->getUserAgentString();
+
+        if ($browser->getLayoutEngine()!==Browser::ENGINE_UNKNOWN && $browser->getLayoutEngineVersion()!==Browser::VERSION_UNKNOWN)
+        {
+            //Already detected. This can happen in the case of EdgeHTML
+            return true;
+        }
+
+        $matches    = [];
+
+        //This mega-regex will pull out the key/value pairs from the user agent string.
+        //I *think* this is quicker than using lots of separate substring searches.
+        if (preg_match_all("([a-zA-Z\\d]*)[\\/]([\\d\\.\\+a-zA-Z\\-]*)|(MSIE)\\s([\\d\\.]*)|(Tasman)\\s([\\d\\.]*)|(The\\sBat!)\\s([\\d\\.]*)|(Opera)\\s([\\d\\.]*)|(OffByOne).*Webster\\sPro\\sV([\\d\\.]*)|(Links)\\s([\\d\\.]*)|(htmlayout)\\s([\\d\\.]*)|(iCab)\\s([\\d\\.]*)", self::$userAgentString, $matches))
+        {
+            $keys = [];
+            foreach($matches as $match)
+            {
+
+            }
+        }
+
 
         return false;
     }
@@ -528,6 +569,7 @@ class BrowserDetector implements DetectorInterface
             $version = explode('Edge/', self::$userAgentString);
             self::$browser->setLayoutEngine(Browser::ENGINE_EDGEHTML);
             if (isset($version[1])) {
+                self::$browser->setLayoutEngineVersion($version[1]);
                 self::$browser->setVersion((float)$version[1]);
             }
             self::$browser->setName(Browser::EDGE);
